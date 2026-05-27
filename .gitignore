@@ -6,6 +6,9 @@ __pycache__/
 dist/
 build/
 *.egg-info/
-data/
+data/*
+!data/README.md
+!data/suffix_frequencies.tsv
+!data/stems.tsv
 *.model.json
 *.zip

@@ -31,6 +31,10 @@ dev = ["pytest>=8.0"]
 [project.scripts]
 sinhala-segment = "sinhala_stem_segmenter.cli:main"
 
+[project.urls]
+Homepage = "https://github.com/sarves/sinhala-stem-segmenter"
+Repository = "https://github.com/sarves/sinhala-stem-segmenter"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/sinhala_stem_segmenter"]
 
