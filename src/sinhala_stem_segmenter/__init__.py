@@ -1,6 +1,6 @@
 """Sinhala data-driven stem/rest segmentation."""
 
-from .model import SegmentResult, SinhalaStemSegmenter
+from .model import DEFAULT_MODEL_RESOURCE, SegmentResult, SinhalaStemSegmenter
 from .unicode import (
     SinhalaCluster,
     is_sinhala_char,
@@ -12,6 +12,7 @@ from .unicode import (
 
 __all__ = [
     "SegmentResult",
+    "DEFAULT_MODEL_RESOURCE",
     "SinhalaCluster",
     "SinhalaStemSegmenter",
     "is_sinhala_char",

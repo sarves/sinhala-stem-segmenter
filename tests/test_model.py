@@ -1,4 +1,6 @@
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from sinhala_stem_segmenter import SinhalaStemSegmenter
 
@@ -25,6 +27,18 @@ class ModelTests(unittest.TestCase):
         self.assertEqual(result.stem, "මම")
         self.assertEqual(result.rest, "")
         self.assertFalse(result.split)
+
+    def test_gzip_model_roundtrip(self):
+        model = SinhalaStemSegmenter(min_family_size=2, min_rest_frequency=1, min_score=1.0)
+        model.fit_texts(["ආණ්ඩුව ආණ්ඩුවට ආණ්ඩුවේ"])
+
+        with TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "model.json.gz"
+            model.save(path)
+            loaded = SinhalaStemSegmenter.load(path)
+
+        result = loaded.segment("ආණ්ඩුවට")
+        self.assertEqual(result.stem + result.rest, result.normalized)
 
 
 if __name__ == "__main__":

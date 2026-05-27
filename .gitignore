@@ -1,11 +1,11 @@
 __pycache__/
 *.py[cod]
+.DS_Store
 .pytest_cache/
 .venv/
 dist/
 build/
 *.egg-info/
-data/nsina/
-data/nsina_compiled/
+data/
 *.model.json
 *.zip

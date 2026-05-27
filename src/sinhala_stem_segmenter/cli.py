@@ -24,7 +24,11 @@ def build_parser() -> argparse.ArgumentParser:
     train.add_argument("--min-score", type=float, default=4.0)
 
     segment = subparsers.add_parser("segment", help="Segment stdin text or words.")
-    segment.add_argument("-m", "--model", required=True, help="Model JSON path.")
+    segment.add_argument(
+        "-m",
+        "--model",
+        help="Optional model JSON or JSON.GZ path. Uses the bundled model by default.",
+    )
     segment.add_argument("--json", action="store_true", help="Emit JSON lines.")
     segment.add_argument("--tokens", action="store_true", help="Tokenize stdin as text.")
 
@@ -59,7 +63,7 @@ def train_command(args: argparse.Namespace) -> int:
 
 
 def segment_command(args: argparse.Namespace) -> int:
-    model = SinhalaStemSegmenter.load(args.model)
+    model = SinhalaStemSegmenter.load(args.model) if args.model else SinhalaStemSegmenter.load_default()
     raw_text = sys.stdin.read()
     words = iter_sinhala_words(raw_text) if args.tokens else raw_text.split()
     for word in words:

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass
+import gzip
+from importlib import resources
 import json
 import math
 from pathlib import Path
@@ -11,6 +13,8 @@ from typing import Iterable
 
 from .tokenize import iter_sinhala_words
 from .unicode import normalize_sinhala, split_sinhala_clusters
+
+DEFAULT_MODEL_RESOURCE = "resources/default.model.json.gz"
 
 
 @dataclass(frozen=True)
@@ -230,7 +234,14 @@ class SinhalaStemSegmenter:
         return model
 
     def save(self, path: str | Path) -> None:
+        """Save model state to JSON or gzip-compressed JSON."""
+
         output = Path(path)
+        if output.suffix == ".gz":
+            with gzip.open(output, "wt", encoding="utf-8") as handle:
+                json.dump(self.to_dict(), handle, ensure_ascii=False, separators=(",", ":"))
+            return
+
         output.write_text(
             json.dumps(self.to_dict(), ensure_ascii=False, indent=2, sort_keys=True),
             encoding="utf-8",
@@ -238,5 +249,22 @@ class SinhalaStemSegmenter:
 
     @classmethod
     def load(cls, path: str | Path) -> "SinhalaStemSegmenter":
-        data = json.loads(Path(path).read_text(encoding="utf-8"))
+        """Load a model from JSON or gzip-compressed JSON."""
+
+        input_path = Path(path)
+        if input_path.suffix == ".gz":
+            with gzip.open(input_path, "rt", encoding="utf-8") as handle:
+                data = json.load(handle)
+        else:
+            data = json.loads(input_path.read_text(encoding="utf-8"))
+        return cls.from_dict(data)
+
+    @classmethod
+    def load_default(cls) -> "SinhalaStemSegmenter":
+        """Load the bundled pretrained Sinhala segmenter."""
+
+        resource = resources.files("sinhala_stem_segmenter").joinpath(DEFAULT_MODEL_RESOURCE)
+        with resource.open("rb") as raw:
+            with gzip.open(raw, "rt", encoding="utf-8") as handle:
+                data = json.load(handle)
         return cls.from_dict(data)
