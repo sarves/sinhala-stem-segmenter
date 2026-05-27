@@ -1,0 +1,16 @@
+{
+  "average_rest_clusters": 1.262733,
+  "average_split_confidence": 0.999843,
+  "dataset": "Minuri/sinhala-corpus-culturax",
+  "family_supported_split_rate": 0.989567,
+  "model_in": "nsina-news-segmenter.model.json",
+  "note": "Unsupervised corpus validation; not gold linguistic accuracy.",
+  "reconstruction_accuracy": 1.0,
+  "split_coverage": 0.638584,
+  "test_rows": 1000,
+  "test_tokens": 13959,
+  "train_rows": null,
+  "train_tokens": 81147555,
+  "train_word_types": 972105,
+  "valid_boundary_accuracy": 1.0
+}

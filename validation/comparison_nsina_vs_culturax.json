@@ -1,0 +1,55 @@
+{
+  "date": "2026-05-27",
+  "note": "All metrics are unsupervised. They measure reconstruction, legal-boundary preservation, and corpus-driven split support, not gold linguistic accuracy.",
+  "culturax_small_model_on_culturax_holdout": {
+    "train_rows": 5000,
+    "test_rows": 1000,
+    "test_offset": 5000,
+    "test_tokens": 13959,
+    "train_tokens": 39330,
+    "train_word_types": 15009,
+    "reconstruction_accuracy": 1.0,
+    "valid_boundary_accuracy": 1.0,
+    "split_coverage": 0.565298,
+    "family_supported_split_rate": 0.754024,
+    "average_split_confidence": 0.989507,
+    "average_rest_clusters": 1.317324,
+    "metrics_file": "validation/culturax_5000_1000_holdout.json"
+  },
+  "nsina_model_on_nsina_holdout": {
+    "train_articles": 521670,
+    "test_articles": 57980,
+    "test_tokens": 13094865,
+    "train_tokens_used_by_model": 81147555,
+    "train_word_types": 972105,
+    "reconstruction_accuracy": 1.0,
+    "valid_boundary_accuracy": 1.0,
+    "split_coverage": 0.685566,
+    "family_supported_split_rate": 0.992502,
+    "average_split_confidence": 0.999983,
+    "average_rest_clusters": 1.252453,
+    "metrics_file": "validation/nsina_news_full.json"
+  },
+  "nsina_model_on_culturax_holdout": {
+    "test_rows": 1000,
+    "test_offset": 5000,
+    "test_tokens": 13959,
+    "train_tokens_used_by_model": 81147555,
+    "train_word_types": 972105,
+    "reconstruction_accuracy": 1.0,
+    "valid_boundary_accuracy": 1.0,
+    "split_coverage": 0.638584,
+    "family_supported_split_rate": 0.989567,
+    "average_split_confidence": 0.999843,
+    "average_rest_clusters": 1.262733,
+    "metrics_file": "validation/nsina_model_on_culturax_1000.json"
+  },
+  "same_culturax_holdout_delta_nsina_minus_culturax_small": {
+    "split_coverage": 0.073286,
+    "family_supported_split_rate": 0.235543,
+    "average_split_confidence": 0.010336,
+    "average_rest_clusters": -0.054591,
+    "reconstruction_accuracy": 0.0,
+    "valid_boundary_accuracy": 0.0
+  }
+}

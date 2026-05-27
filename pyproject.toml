@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sinhala-stem-segmenter"
+version = "0.1.0"
+description = "Data-driven Sinhala stem/rest segmenter with Sinhala orthographic-cluster boundaries."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+  { name = "Sarves and Codex" }
+]
+keywords = ["sinhala", "stemming", "segmentation", "nlp", "tokenization"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Natural Language :: Sinhala",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: Text Processing :: Linguistic"
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+sinhala-segment = "sinhala_stem_segmenter.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/sinhala_stem_segmenter"]
