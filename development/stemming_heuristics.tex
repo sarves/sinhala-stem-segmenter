@@ -1,0 +1,323 @@
+\documentclass[11pt]{article}
+
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{fontspec}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{array}
+
+\setmainfont{Helvetica Neue}
+\setsansfont{Helvetica Neue}
+\setmonofont{Menlo}
+\newfontfamily\sinhalafont[Script=Sinhala]{Sinhala MN}
+\newcommand{\si}[1]{{\sinhalafont #1}}
+
+\definecolor{accent}{HTML}{255A73}
+\definecolor{softgray}{HTML}{F5F7F8}
+\definecolor{darkgray}{HTML}{333333}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=accent,
+  urlcolor=accent
+}
+
+\setlist[itemize]{leftmargin=1.2em}
+\setlist[enumerate]{leftmargin=1.4em}
+\renewcommand{\arraystretch}{1.2}
+
+\title{\textbf{Sinhala Stem/Rest Segmentation}\\
+\large Split Logic and Scoring Heuristics}
+\author{Sarves}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section*{Purpose}
+
+The Sinhala Stem Segmenter is designed for modern written Sinhala. It is not a
+lemmatizer, and it does not delete suffixes. Instead, it segments a word into a
+left-side \textit{stem} and a right-side \textit{rest}:
+
+\[
+\text{stem} + \text{rest} = \text{normalized word}
+\]
+
+For example:
+
+\begin{center}
+\large \si{ජනාධිපතිවරයා} + \si{ය} = \si{ජනාධිපතිවරයාය}
+\end{center}
+
+The goal is to preserve the original word while exposing a useful stem/rest
+structure for search, tokenization experiments, corpus analysis, and downstream
+Sinhala NLP tools.
+
+\section*{What Happens When A Sinhala Word Is Fed?}
+
+When a word such as \si{ජනාධිපතිවරයාය} is given to the segmenter, the model
+does not simply look up a final answer from a dictionary. It uses stored learned
+evidence, but the split itself is generated and scored on the fly.
+
+\begin{enumerate}
+  \item \textbf{Normalize the word.}
+  The input is Unicode-normalized so equivalent written forms are handled
+  consistently.
+
+  \item \textbf{Split into Sinhala orthographic clusters.}
+  The word is not split by raw Unicode characters. The segmenter respects the
+  Sinhala abugida writing system and avoids cutting inside dependent vowel
+  signs, al-lakuna, ZWJ/ZWNJ sequences, and related written units.
+
+  \item \textbf{Generate legal split candidates on the fly.}
+  For \si{ජනාධිපතිවරයාය}, the segmenter considers legal boundaries such as:
+
+  \begin{center}
+  \large \si{ජනාධිපති} + \si{වරයාය}
+  \end{center}
+
+  \begin{center}
+  \large \si{ජනාධිපතිවරයා} + \si{ය}
+  \end{center}
+
+  and other legal cluster-safe splits.
+
+  \item \textbf{Check learned evidence.}
+  The model contains learned tables such as:
+  \begin{itemize}
+    \item stem candidate $\rightarrow$ possible rest parts and frequencies
+    \item rest part $\rightarrow$ global frequency
+    \item word $\rightarrow$ frequency
+  \end{itemize}
+
+  \item \textbf{Score each candidate split.}
+  Each legal split is scored using corpus evidence.
+
+  \item \textbf{Choose the best split.}
+  The highest-scoring valid split is selected if it is above the minimum score
+  threshold.
+
+  \item \textbf{Fallback if no split is strong enough.}
+  If the model does not find a strong split, it returns the whole word as the
+  stem and an empty rest.
+\end{enumerate}
+
+\section*{Example Output}
+
+For the input word \si{ජනාධිපතිවරයාය}, the model returns:
+
+\begin{center}
+\begin{tabular}{>{\bfseries}p{0.28\linewidth}p{0.52\linewidth}}
+\toprule
+Field & Value \\
+\midrule
+word & \si{ජනාධිපතිවරයාය} \\
+normalized & \si{ජනාධිපතිවරයාය} \\
+stem & \si{ජනාධිපතිවරයා} \\
+rest & \si{ය} \\
+boundary & 12 \\
+stem\_clusters & 8 \\
+rest\_clusters & 1 \\
+confidence & 1.0 \\
+score & 42.895175 \\
+family\_size & 76 \\
+family\_tokens & 22839 \\
+rest\_frequency & 7212294 \\
+split & True \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The important user-facing result is:
+
+\begin{center}
+\large \si{ජනාධිපතිවරයාය} \(\rightarrow\) \si{ජනාධිපතිවරයා} + \si{ය}
+\end{center}
+
+\section*{Meaning Of The Advanced Fields}
+
+\begin{description}
+  \item[word] Original input word.
+  \item[normalized] Unicode-normalized word used internally.
+  \item[stem] Left-side segment selected by the model.
+  \item[rest] Right-side remaining segment.
+  \item[boundary] Character offset where the stem ends and the rest starts.
+  \item[stem\_clusters] Number of Sinhala orthographic clusters in the stem.
+  \item[rest\_clusters] Number of Sinhala orthographic clusters in the rest.
+  \item[confidence] Model confidence between 0 and 1.
+  \item[score] Raw internal evidence score for the chosen split.
+  \item[family\_size] Number of different rest parts seen with the same stem.
+  \item[family\_tokens] Total frequency supporting this stem family.
+  \item[rest\_frequency] Frequency of this rest pattern in the model.
+  \item[split] True if a split was selected; False if the whole word was kept as
+  the stem.
+\end{description}
+
+\section*{Scoring Formula}
+
+For each legal candidate split, the model calculates:
+
+\[
+\begin{aligned}
+\text{score} ={}&
+  2.2 \cdot \log(1 + \text{family\_size}) \\
+&+ 0.65 \cdot \log(1 + \text{family\_tokens}) \\
+&+ 1.15 \cdot \log(1 + \text{rest\_frequency}) \\
+&+ 0.7 \cdot \log(1 + \text{stem\_as\_word\_frequency}) \\
+&+ 0.12 \cdot \text{stem\_clusters} \\
+&- 0.45 \cdot \max(0, \text{rest\_clusters} - 4) \\
+&- \text{tiny\_stem\_penalty}
+\end{aligned}
+\]
+
+where:
+
+\[
+\text{tiny\_stem\_penalty} =
+\begin{cases}
+0.7, & \text{if stem\_clusters} \leq \text{min\_stem\_clusters} \\
+0, & \text{otherwise}
+\end{cases}
+\]
+
+\section*{Logic Behind The Heuristics}
+
+The formula is a tunable engineering heuristic. It is not copied from a single
+published Sinhala stemming paper. However, the signals used in it are motivated
+by established ideas in unsupervised morphology and stemming.
+
+\subsection*{Family Size}
+
+\[
+2.2 \cdot \log(1 + \text{family\_size})
+\]
+
+This is the strongest signal. If a left-side string appears with many different
+right-side parts, it is likely to be a stem-like unit.
+
+Example pattern:
+
+\begin{center}
+\large \si{ආණ්ඩුව}+\si{ට},\quad
+\si{ආණ්ඩුව}+\si{ේ},\quad
+\si{ආණ්ඩුව}+\si{ක්}
+\end{center}
+
+This idea is related to \textit{successor variety}: a high variety of possible
+continuations after a segment can indicate a boundary.
+
+\subsection*{Family Tokens}
+
+\[
+0.65 \cdot \log(1 + \text{family\_tokens})
+\]
+
+This rewards stem families that occur often. It is weighted lower than
+family size because raw frequency alone can over-favor very common accidental
+strings.
+
+\subsection*{Rest Frequency}
+
+\[
+1.15 \cdot \log(1 + \text{rest\_frequency})
+\]
+
+This rewards common right-side patterns. If a rest part appears across many
+words, it is a useful segmentation clue.
+
+\subsection*{Stem As Word Frequency}
+
+\[
+0.7 \cdot \log(1 + \text{stem\_as\_word\_frequency})
+\]
+
+This rewards stems that also appear independently as words. This is only a soft
+clue; a useful stem does not have to be a standalone dictionary word.
+
+\subsection*{Stem Length Reward}
+
+\[
+0.12 \cdot \text{stem\_clusters}
+\]
+
+This gives a small reward to longer stems, helping avoid splits that happen too
+early in the word.
+
+\subsection*{Long Rest Penalty}
+
+\[
+-0.45 \cdot \max(0, \text{rest\_clusters} - 4)
+\]
+
+This penalizes unusually long rest parts. A very long rest can indicate that the
+split happened too early.
+
+\subsection*{Tiny Stem Penalty}
+
+Very short stems are penalized because they are more likely to be accidental
+prefix-like fragments rather than useful stems.
+
+\section*{Why Use Logarithms?}
+
+The model uses \(\log(1+x)\) for count-based signals. This gives diminishing
+returns:
+
+\begin{itemize}
+  \item frequency evidence helps;
+  \item very large counts do not completely dominate the decision;
+  \item multiple kinds of evidence can still influence the split.
+\end{itemize}
+
+\section*{Literature Support}
+
+The exact numeric weights are engineering choices and should be tuned with
+evaluation data. The underlying ideas, however, have support in computational
+morphology:
+
+\begin{itemize}
+  \item \textbf{Successor variety:} Harris-style segmentation uses the idea that
+  many possible continuations after a segment can indicate a morpheme boundary.
+  This supports the use of \textit{family\_size}.
+
+  \item \textbf{Unsupervised morphology:} Morfessor-style models show that useful
+  morph-like units can be induced from raw text using frequency and form/usage
+  evidence.
+
+  \item \textbf{Conservative stemming:} Stemming for information retrieval often
+  prefers avoiding harmful over-stemming. This motivates penalties for tiny stems
+  and very long rest parts.
+\end{itemize}
+
+\section*{Practical Interpretation}
+
+For most users, the core output is:
+
+\[
+\text{word} \rightarrow \text{stem} + \text{rest}
+\]
+
+The score and frequency fields are best treated as diagnostic evidence. They
+help explain why the model selected a split, but they are not grammatical labels
+and not proof that the split is the only linguistically correct analysis.
+
+\section*{References}
+
+\begin{itemize}
+  \item Harris, Z. S. (1955). \textit{From phoneme to morpheme}. Language, 31(2),
+  190--222.
+
+  \item Çöltekin, Ç. (2010). \textit{Improving Successor Variety for Morphological
+  Segmentation}.
+
+  \item Creutz, M., \& Lagus, K. (2007). \textit{Unsupervised models for morpheme
+  segmentation and morphology learning}. ACM Transactions on Speech and
+  Language Processing, 4(1).
+
+  \item Snowball stemming project. \url{https://snowballstem.org/}
+\end{itemize}
+
+\end{document}
